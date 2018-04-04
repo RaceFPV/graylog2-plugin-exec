@@ -65,7 +65,7 @@ public class ExeCommandAlarmCallBack implements AlarmCallback{
 				messageBacklog += "No message backlog available.";
 			} else {
 				for (MessageSummary message : result.getMatchingMessages()) {
-					messageBacklog += message.getMessage() + "\n\n\n";
+					messageBacklog += message.getMessage();
 				}
 			}
 
@@ -83,6 +83,13 @@ public class ExeCommandAlarmCallBack implements AlarmCallback{
 			bashCommand = findAndReplaceAll("\\$\\{message\\}", messageBacklog, bashCommand);
 			bashCommand = findAndReplaceAll("\\$\\{alertDescription\\}", alertDescription, bashCommand);
 			bashCommand = findAndReplaceAll("\\$\\{alertCondition\\}", alertCondition, bashCommand);
+			if (result.getMatchingMessages().size() != 0) {
+				for (MessageSummary message : result.getMatchingMessages()) {
+					for (Map.Entry<String, Object> entry : message.getFields().entrySet()) {
+						bashCommand = findAndReplaceAll("\\$\\{" + entry.getKey() + "\\}", entry.getValue().toString(), bashCommand);
+					}
+				}
+			}
 			output += "Bash command expanded: " + bashCommand + "\n";
 
 			// write the log
@@ -127,7 +134,7 @@ public class ExeCommandAlarmCallBack implements AlarmCallback{
 	@Override
 	public ConfigurationRequest getRequestedConfiguration() {
 		final ConfigurationRequest configurationRequest = new ConfigurationRequest();
-		configurationRequest.addField(new TextField("bashCommand", "Bash Command", "", "use \"${message}\", \"${alertDescription}\", \"${alertCondition}\" to forward graylog info", ConfigurationField.Optional.NOT_OPTIONAL));
+		configurationRequest.addField(new TextField("bashCommand", "Bash Command", "", "use \"${message}\", \"${alertDescription}\", \"${alertCondition}\" or \"${fieldName}\" which contains any field name of message to forward graylog info", ConfigurationField.Optional.NOT_OPTIONAL));
 		// Manu (20170726). Add filelog to debug
 		configurationRequest.addField(new TextField("filelog", "File log", "/tmp/execCommandCallBack.log", "File path for debug logging"));
 		return configurationRequest;
